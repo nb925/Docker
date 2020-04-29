@@ -1,0 +1,80 @@
+version: '3'
+
+services:
+
+  db01:
+    image: mysql:5.7
+    volumes:
+      - db01_storage:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_USER: nitin
+      MYSQL_PASSWORD: redhat
+      MYSQL_DATABASE: mydb
+
+  memcached:
+    image: memcached
+    depends_on:
+       - db01
+
+  wp_os01:
+    build:
+      context: ./wordpress
+      dockerfile: dockerfile
+    image: wordpress:5.1.1-php7.3-apache
+    restart: always
+    depends_on:
+      - db01
+      - memcached
+    ports:
+      - 8080:80
+    environment:
+      WORDPRESS_DB_HOST: db01
+      WORDPRESS_DB_USER: nitin
+      WORDPRESS_DB_PASSWORD: redhat
+      WORDPRESS_DB_NAME: mydb
+    volumes:
+      - wp_storage:/var/www/html
+
+  wp_os02:
+    build:
+      context: ./wordpress
+      dockerfile: dockerfile
+    image: wordpress:5.1.1-php7.3-apache
+    restart: always
+    depends_on:
+      - db01
+      - memcached
+    ports:
+      - 8081:80
+    environment:
+      WORDPRESS_DB_HOST: db01
+      WORDPRESS_DB_USER: nitin
+      WORDPRESS_DB_PASSWORD: redhat
+      WORDPRESS_DB_NAME: mydb
+    volumes:
+      - wp_storage:/var/www/html
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: dockerfile
+    depends_on:
+      - wp_os01
+      - wp_os02
+      - db01
+      - memcached
+    restart: always
+    ports:
+      - 80:80
+    environment:
+      - NGINX_HOST:mysite.com
+      - NGINX_PORT:80
+    volumes:
+      - nginx_storage:/etc/nginx
+
+volumes:
+  wp_storage:
+  db01_storage:
+  nginx_storage:
